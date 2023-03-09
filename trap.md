@@ -21,7 +21,7 @@ when os boot, it's in kernel mode, when it comes back to user mode (sret => user
 //
 // return to user space
 //
-// important: actually usertrapret is called before usertrap, and in usertrapret it set sth like trapframe
+// important: actually usertrapret is called before usertrap (it's called when fork process), and in usertrapret it set sth like trapframe
 void
 usertrapret(void)
 {
