@@ -248,6 +248,7 @@ usertrapret(void)
 ```
 
 7. userset
+resume to userspace (next instruction after ecall)
 ```
 .globl userret
 userret:
