@@ -13,7 +13,61 @@ exec:
 ```
 3. trap
 ecall make the os to go into interrupt
-(1) ecall go into supervisor mode and call uservec (trampoline.s)
+(1) ecall go into supervisor mode, (2) ecall save the pc to sepc register (3) and jump to the instruction function stvec point to => call uservec (trampoline.s in memory page) ? who set the stvec?
+
+who set the sscratch reg?
+when os boot, it's in kernel mode, when it comes back to user mode (sret => usertrapret), it set the sscratch; also it set kernel_trap to go to the usertrap
+```
+//
+// return to user space
+//
+// important: actually usertrapret is called before usertrap, and in usertrapret it set sth like trapframe
+void
+usertrapret(void)
+{
+  struct proc *p = myproc();
+
+  // we're about to switch the destination of traps from
+  // kerneltrap() to usertrap(), so turn off interrupts until
+  // we're back in user space, where usertrap() is correct.
+  intr_off();
+
+  // send syscalls, interrupts, and exceptions to uservec in trampoline.S
+  uint64 trampoline_uservec = TRAMPOLINE + (uservec - trampoline);
+  w_stvec(trampoline_uservec);
+
+  // important: here set the trapframe
+  // set up trapframe values that uservec will need when
+  // the process next traps into the kernel.
+  p->trapframe->kernel_satp = r_satp();         // kernel page table
+  p->trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack
+  p->trapframe->kernel_trap = (uint64)usertrap;
+  p->trapframe->kernel_hartid = r_tp();         // hartid for cpuid()
+
+  // set up the registers that trampoline.S's sret will use
+  // to get to user space.
+
+  // set S Previous Privilege mode to User.
+  unsigned long x = r_sstatus();
+  x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode
+  x |= SSTATUS_SPIE; // enable interrupts in user mode
+  w_sstatus(x);
+
+  // set S Exception Program Counter to the saved user pc.
+  w_sepc(p->trapframe->epc);
+
+  // tell trampoline.S the user page table to switch to.
+  uint64 satp = MAKE_SATP(p->pagetable);
+
+  // jump to userret in trampoline.S at the top of memory, which 
+  // switches to the user page table, restores user registers,
+  // and switches to user mode with sret.
+  uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);
+  // important: here set the sscratch
+  ((void (*)(uint64))trampoline_userret)(satp);
+}
+
+```
 
 (2)  uservec call the usertrap
 ```
@@ -43,6 +97,19 @@ uservec:
         # traps from user space start here,
         # in supervisor mode, but with a
         # user page table.
+        # save user a0 in sscratch so
+        # a0 can be used to get at TRAPFRAME.
+        # important, before we enter kernel. the sscratch register store the pointer to  trapframe
+        csrw sscratch, a0
+
+        # each process has a separate p->trapframe memory area,
+        # but it's mapped to the same virtual address
+        # (TRAPFRAME) in every process's user page table.
+        li a0, TRAPFRAME
+
+        # save the user registers in TRAPFRAME
+        sd ra, 40(a0)
+                                                     
 
 ```
 
