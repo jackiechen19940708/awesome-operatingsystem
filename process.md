@@ -1,5 +1,12 @@
 # Process
-process is a running program, an abstraction of cpu
+process is a running program, an abstraction of cpu.
+# isolation
+A program can be written as if had a dedicated CPU. No need to worry about how to share CPU with others.
+# Process = address space + thread(s)
+address space is through pgtbl ()
+
+threads : an independent serial execution -- registers, pc, stack
+
 ```
 // Saved registers for kernel context switches.
 struct context {
