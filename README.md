@@ -1,4 +1,13 @@
 # AwesomeOperatingSystem
+When refer to operating system, we have several topics:
+1. process
+2. virtual memory
+3. thread
+4. schedule
+5. file system
+6. trap
+7. driver
+8. advanced topic: virtual machine
 
 # Acknowledgement
 1. [PDOS MIT](https://pdos.csail.mit.edu/6.828/2022/index.html)
